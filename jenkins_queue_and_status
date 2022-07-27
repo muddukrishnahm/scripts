@@ -1,0 +1,32 @@
+---
+
+- name: Trigger Jenkins job
+  hosts: all
+  connection: local
+
+  tasks:
+  - name: Jenkins build
+    shell: "curl -v -X POST http://3.109.58.110:8080/job/test-job/build --user muddukrishna:11c84807de3841bd7"
+
+  - name: Check Queue
+    shell: "curl -s -k http://3.109.58.110:8080/queue/api/json --user muddukrishna:11c84807de3841bd71ef621"
+    register: jsonresult
+    until: jsonresult.stdout.find('test-job') == -1
+    retries: 5
+    delay: 5
+
+  - name: build status
+    shell: "curl -s http://3.109.58.110:8080/job/test-job/lastBuild/api/json --user muddukrishna:11c84807de3841bd71ef6 | jq .result"
+    register: jobstatus
+    until: jobstatus.stdout != "null"
+    retries: 5
+    delay: 10
+
+
+  - name: Jenkins retrigger
+    shell: "curl -v -X POST http://3.109.58.110:8080/job/test-job --user muddukrishna:11c84807de3841bd71ef621d4df"
+    when: jobstatus.stdout  == "\"FAILURE\""
+
+  - name: check nginx
+    shell: "curl http://3.109.58.110:8080/"
+    when: jobstatus.stdout == "\"SUCCESS\""
