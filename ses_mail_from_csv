@@ -1,0 +1,56 @@
+import boto3
+import csv
+from botocore.exceptions import ClientError
+
+# Email information
+from_address = 'info@qprofiles.com'
+subject = 'QA Session Allocation'
+message_body = ''
+meeting_link = ''
+roll_number = ''
+email_list = ''
+
+
+
+def sendmail(recipient,subject,message_body):
+    # Create a new SES client
+    client = boto3.client('ses')
+
+    # Create a message
+    message = {
+        'Subject': {
+            'Data': subject
+        },
+        'Body': {
+            'Text': {
+                'Data': message_body
+            }
+        }
+    }
+
+    # Send the email
+    try:
+        response = client.send_email(
+            Source=from_address,
+            Destination={
+                'ToAddresses': [
+                    recipient,
+                ]
+            },
+            Message=message
+        )
+        print(f"Email sent to {recipient}, MessageId: {response['MessageId']}")
+    except ClientError as e:
+        print(f"Email to {recipient} failed to send. Error message: {e.response['Error']['Message']}")
+
+
+# Read CSV file
+with open('email_list.csv', 'r') as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        email = row[0]
+        meeting_link = row[1]
+        roll_number = row[2]
+        message_body = f' \n Roll Number: {roll_number} \n Meeting Link: {meeting_link} \n Please find the Details and join the QA in a specified time \n Note: You must Join the QA with give rollnumber .'
+        print(message_body)
+        sendmail(email,subject,message_body)
